@@ -223,6 +223,7 @@ class Bot extends PircBot {
   private def info(channel: String): Unit = {
     sendMessage(channel, "Web Version: http://arithmea2000.appspot.com")
     sendMessage(channel, "Source Code: https://github.com/Tok/ArithmeA-Bot")
+    sendMessage(channel, "© 2013 by ORDO .'. ILLUMINATORUM .'. DIGITALIS .'.")
   }
 
   private def showTerms(channel: String): Unit = {

@@ -44,11 +44,8 @@ object GematriaUtil {
       case 'C' => next match {
         case 'H' => (HebrewLetter.CHETH.chr, 1)
         case 'C' | 'K' => (marker, 1)
-        case '-' => ret(HebrewLetter.KAPH_FINAL)
-        case _ => afterNext match {
-          case ' ' | '\u0000' => ret(HebrewLetter.KAPH_FINAL)
-          case _ => ret(HebrewLetter.KAPH)
-        }
+        case '-' | ' ' | '\u0000' => ret(HebrewLetter.KAPH_FINAL)
+        case _ => ret(HebrewLetter.KAPH)
       }
       case 'D' => ret(HebrewLetter.DALETH)
       case 'E' => next match {
