@@ -6,16 +6,20 @@ import arithmea.gematria.Term
 object Globals {
   val wordlistName = "words.txt"
   val ircPropertiesName = "irc.properties"
+  val allWords = readWords
 
-  private def readTerms(): Set[Term] = {
+  private def readWords(): List[String] = {
     println("Parsing wordlist...")
     val lines = scala.io.Source.fromFile(Globals.wordlistName, "ISO-8859-1").getLines.toList
     println(lines.size + " words parsed.")
-    val words = lines.map(_.toUpperCase(Locale.getDefault)).sorted
-    println("Calculating numbers...")
-    words.map(new Term(_)).toSet
+    lines.map(_.toUpperCase(Locale.getDefault)).sorted
   }
 
-  var terms: Set[Term] = readTerms
+  private def makeTerms(): Set[Term] = {
+    println("Calculating numbers...")
+    allWords.map(new Term(_)).toSet
+  }
+
+  var terms: Set[Term] = makeTerms
   def updateTerms(newTerm: Term): Unit = terms = terms ++ Set(newTerm)
 }

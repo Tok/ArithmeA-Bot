@@ -15,15 +15,22 @@ import org.jibble.pircbot.PircBot
 import arithmea.Globals
 import arithmea.gematria.Method
 import arithmea.gematria.Term
+import arithmea.util.AnagramUtil
 import arithmea.util.ColorUtil
 import arithmea.util.GematriaUtil
 
 class Bot extends PircBot {
   val SPACE = " "
   val TRIPPLE_DOT = "..."
-  val resultCount = 30
+  val maxResults = 30
+  val maxAnagrams = 20
 
-  case class IrcSettings(val network: String, val port: Int, val channel: String, val nick: String, val joinMessage: String)
+  val info = List("Web Version: http://arithmea2000.appspot.com",
+    "Source Code: https://github.com/Tok/ArithmeA-Bot",
+    "Copyright © 2013 by ORDO .'. ILLUMINATORUM .'. DIGITALIS .'.")
+
+  case class IrcSettings(val network: String, val port: Int, val channel: String, val nick: String,
+    val joinMessage: String, val greetingNotice: String)
 
   def init: IrcSettings = {
     try {
@@ -33,28 +40,26 @@ class Bot extends PircBot {
       val port = prop.getProperty("port").toInt
       val channel = prop.getProperty("channel")
       val nick = prop.getProperty("nick")
-      val login = prop.getProperty("login")
-      val version = prop.getProperty("version")
-      val delayMs = prop.getProperty("delayMs").toLong
       val joinMessage = prop.getProperty("joinMessage")
+      val greetingNotice = prop.getProperty("greetingNotice")
       super.setEncoding("UTF-8")
-      super.setLogin(login)
-      super.setVersion(version)
-      super.setMessageDelay(delayMs)
+      super.setLogin(prop.getProperty("login"))
+      super.setVersion(prop.getProperty("version"))
+      super.setMessageDelay(prop.getProperty("delayMs").toLong)
       super.setAutoNickChange(false)
-      IrcSettings(network, port, channel, nick, joinMessage)
+      IrcSettings(network, port, channel, nick, joinMessage, greetingNotice)
     } catch {
       case e: Exception =>
         println("Fail reading IRC properties: " + e.getMessage)
         println("Using defaults.")
-        IrcSettings("efnet.xs4all.nl", 6669, "#Thelema", "ArithmeA", "")
+        IrcSettings("efnet.xs4all.nl", 6669, "#Thelema", "ArithmeA", "", "")
     }
   }
   val settings = init
 
   object Command extends Enumeration {
     type Command = Value
-    val ADD, SHOW, TERMS, HELP, INFO, EXPLAIN, COMMENT, QUIT, GTFO = Value
+    val ADD, SHOW, TERMS, HELP, INFO, EXPLAIN, COMMENT, ANA, QUIT, GTFO = Value
   }
 
   def connectAndJoin(): Unit = {
@@ -72,45 +77,45 @@ class Bot extends PircBot {
     }
   }
 
-  override def onMessage(channel: String, sender: String, login: String, hostname: String, msg: String): Unit = {
-    val message = splitAtSpace(msg)
-    if (isForBot(message)) {
-      executeCommand(channel, message.tail.head.toUpperCase, message.tail.tail)
-    }
-  }
-
-  override def onJoin(channel: String, sender: String, login: String, hostname: String): Unit = {
-    if (sender.equals(getNick) && !settings.joinMessage.equals("")) {
-      sendMessage(channel, settings.joinMessage)      
-    }
-  }
-  
-  private def executeCommand(channel: String, command: String, rest: Array[String]): Unit = {
+  private def executeCommand(source: String, command: String, rest: Array[String]): Unit = {
     try {
       Command.withName(command) match {
-        case Command.ADD => evaluate(channel, rest.head, true)
+        case Command.ADD => evaluate(source, rest.head, true)
+        case Command.ANA => anagram(source, rest.head)
         case Command.SHOW =>
           Method.valueOf(rest.head) match {
             case Some(m) =>
               rest.tail.head match {
-                case Int(v) => show(channel, m, v)
-                case _ => sendMessage(channel, "Invalid number: " + rest.tail.head)
+                case Int(v) => show(source, m, v)
+                case _ => sendMessage(source, "Invalid number: " + rest.tail.head)
               }
-            case _ => sendMessage(channel, "Method unknown: " + rest.head)
+            case _ => sendMessage(source, "Method unknown: " + rest.head)
           }
-        case Command.INFO => info(channel)
-        case Command.EXPLAIN => explain(channel, rest.head)
-        case Command.COMMENT => comment(channel)
-        case Command.TERMS => showTerms(channel)
-        case Command.HELP => showHelp(channel)
-        case Command.GTFO | Command.QUIT => disconnect
+        case Command.INFO => info(source)
+        case Command.EXPLAIN => explain(source, rest.head)
+        case Command.COMMENT => comment(source)
+        case Command.TERMS => showTerms(source)
+        case Command.HELP => showHelp(source)
+        case Command.GTFO | Command.QUIT =>
+          if (getChannels.contains(source)) { disconnect }
+          else { sendMessage(source, "This command only works in the channel.") }
       }
     } catch {
-      case nse: NoSuchElementException => evaluate(channel, command, false)
+      case nse: NoSuchElementException => evaluate(source, command, false)
     }
   }
 
-  private def evaluate(channel: String, word: String, addWord: Boolean): Unit = {
+  private def anagram(source: String, word: String): Unit = {
+    val anagrams = AnagramUtil.generateAnagrams(word)
+    if (!anagrams.isEmpty) {
+      val message = makeResultMessage(anagrams, maxAnagrams, " - ")
+      sendMessage(source, message)
+    } else {
+      sendMessage(source, "No anagrams found for: " + word)
+    }
+  }
+
+  private def evaluate(source: String, word: String, addWord: Boolean): Unit = {
     val numbers: Map[Method, Int] = GematriaUtil.getValues(word)
     def prepare(m: Method): String = {
       val v = numbers.get(m).get
@@ -124,24 +129,24 @@ class Bot extends PircBot {
     val prepared = Method.values.map(prepare(_)).toList.mkString(SPACE).trim
     val colored = ColorUtil.colorString(prepared)
     val hebrew = GematriaUtil.getHebrew(word)
-    sendMessage(channel, colored + " -- " + hebrew)
+    sendMessage(source, colored + " -- " + hebrew)
     if (addWord) {
       val upper = word.toUpperCase(Locale.getDefault)
       if (Globals.terms.find(_.latinString.equalsIgnoreCase(upper)).isDefined) {
-        sendMessage(channel, upper + " is already in the List.")
+        sendMessage(source, upper + " is already in the List.")
       } else {
         val term = new Term(upper)
         Globals.updateTerms(term)
         val out = new FileWriter(Globals.wordlistName, true)
         try {
           out.write("\n" + upper)
-          sendMessage(channel, upper + " added to List. New size: " + Globals.terms.size)
+          sendMessage(source, upper + " added to List. New size: " + Globals.terms.size)
         } finally { out.close }
       }
     }
   }
 
-  private def show(channel: String, method: Method, number: Int): Unit = {
+  private def show(source: String, method: Method, number: Int): Unit = {
     def isNumber(opt: Option[Int]): Boolean = {
       opt match {
         case Some(v) => v == number
@@ -150,19 +155,16 @@ class Bot extends PircBot {
     }
     val all = Globals.terms.filter(t => isNumber(t.values.get(method))).map(_.latinString)
     if (all.size > 0) {
-      val shuffled = Random.shuffle(all.toList)
-      val results = if (shuffled.size > resultCount) { shuffled.take(resultCount) } else { shuffled }
-      val diff = all.size - results.size
       val percent: Double = (all.size * 100D) / Globals.terms.size
       val percentString = "%3.2f".format(percent) + "% --> "
-      val more = if (diff > 0) { " +" + diff + " more." } else { "" }
-      sendMessage(channel, percentString + results.mkString(SPACE) + more)
+      val message = makeResultMessage(all.toList, maxResults, SPACE)
+      sendMessage(source, percentString + message)
     } else {
-      sendMessage(channel, "No matches found for method " + method + " with number " + number + ".")
+      sendMessage(source, "No matches found for method " + method + " with number " + number + ".")
     }
   }
 
-  private def explain(channel: String, method: String): Unit = {
+  private def explain(source: String, method: String): Unit = {
     val text = Method.valueOf(method) match {
       case Some(Method.Chaldean) =>
         "Chaldean Numerology. " +
@@ -211,49 +213,98 @@ class Bot extends PircBot {
           "Metatron declares: Mishpar Katan is important ;)"
       case None => "Method unknown: " + method
     }
-    sendMessage(channel, text)
+    sendMessage(source, text)
   }
 
-  private def comment(channel: String): Unit = {
+  private def comment(source: String): Unit = {
     val firstLine = "In a first step, the words are transliterated into a representation with hebrew letters " +
       "according to a predefined method. The method of transliteration is missusing hebrew consonants " +
       "as if they were vowels. " +
       "Transliteration is different from translation and results in words and accumulations of letters, " +
       "that most likey don't have any meaning in hebrew."
-    sendMessage(channel, firstLine)
+    sendMessage(source, firstLine)
     val secondLine = "There are different possibilities on how the transliteration may be performed. " +
       "http://en.wikipedia.org/wiki/Romanization_of_Hebrew#How_to_transliterate " +
       "If you want to know the exact method, you may look at the sourcecode of ArithmeA."
-    sendMessage(channel, secondLine)
+    sendMessage(source, secondLine)
   }
 
-  private def info(channel: String): Unit = {
-    sendMessage(channel, "Web Version: http://arithmea2000.appspot.com")
-    sendMessage(channel, "Source Code: https://github.com/Tok/ArithmeA-Bot")
-    sendMessage(channel, "© 2013 by ORDO .'. ILLUMINATORUM .'. DIGITALIS .'.")
+  private def info(source: String): Unit = info.foreach(sendMessage(source, _))
+
+  private def showTerms(source: String): Unit = sendMessage(source, "Number of terms: " + Globals.terms.size)
+
+  private def showHelp(source: String): Unit = {
+    sendMessage(source, "Evaluate: ARITHMEA [word]")
+    sendMessage(source, "Evaluate and add: ARITHMEA ADD [word]")
+    sendMessage(source, "Show numbers: ARITHMEA SHOW [method] [number]")
+    sendMessage(source, "Explain method: ARITHMEA EXPLAIN [method]")
+    sendMessage(source, "  - Methods are: " + Method.values.mkString(SPACE))
+    sendMessage(source, "Show Information about this bot: ARITHMEA INFO")
+    sendMessage(source, "Comment transliteration: ARITHMEA COMMENT")
+    sendMessage(source, "Count terms: ARITHMEA TERMS")
+    sendMessage(source, "Generate anagrams: ARITHMEA ANA [word]")
+    sendMessage(source, "Disconnect Bot: ARITHMEA QUIT")
   }
 
-  private def showTerms(channel: String): Unit = {
-    sendMessage(channel, "Number of terms: " + Globals.terms.size)
+  private def isForBot(firstWord: String): Boolean = {
+    firstWord.startsWith("ARITHMEA") ||
+    firstWord.startsWith(getLogin.toUpperCase(Locale.getDefault)) ||
+    firstWord.startsWith(getNick.toUpperCase(Locale.getDefault))
   }
 
-  private def showHelp(channel: String): Unit = {
-    sendMessage(channel, "Evaluate: ARITHMEA [word]")
-    sendMessage(channel, "Show numbers: ARITHMEA SHOW [method] [number]")
-    sendMessage(channel, "Explain method: ARITHMEA EXPLAIN [method]")
-    sendMessage(channel, "  - Methods are: " + Method.values.mkString(SPACE))
-    sendMessage(channel, "Show Information about this bot: ARITHMEA INFO")
-    sendMessage(channel, "Comment transliteration: ARITHMEA COMMENT")
-    sendMessage(channel, "Count terms: ARITHMEA TERMS")
-    sendMessage(channel, "Disconnect Bot: ARITHMEA QUIT")
+  private def makeResultMessage(result: List[String], limit: Int, separator: String): String = {
+    val shuffled = Random.shuffle(result.toList)
+    val limited = if (result.size > limit) { shuffled.take(limit) } else { shuffled }
+    val diff = result.size - limited.size
+    val more = if (diff > 0) { " +" + diff + " more." } else { "" }
+    limited.mkString(separator) + more
   }
 
-  private def splitAtSpace(message: String): Array[String] = message.split(SPACE)
+  override def onMessage(channel: String, sender: String, login: String, host: String, msg: String): Unit = {
+    val message = msg.split(SPACE)
+    if (isForBot(message.head.toUpperCase(Locale.getDefault))) {
+      executeCommand(channel, message.tail.head.toUpperCase, message.tail.tail)
+    }
+  }
 
-  private def isForBot(message: Array[String]): Boolean = {
-    message.head.equalsIgnoreCase("ArithmeA") ||
-      message.head.equalsIgnoreCase(getLogin) ||
-      message.head.equalsIgnoreCase(getNick)
+  override def onPrivateMessage(sender: String, login: String, host: String, msg: String): Unit = {
+    val message = msg.split(SPACE)
+    executeCommand(sender, message.head.toUpperCase, message.tail)
+  }
+
+  override def onJoin(channel: String, joiner: String, login: String, hostname: String): Unit = {
+    if (joiner.equals(getNick)) {
+      if (!settings.joinMessage.equals("")) { sendMessage(channel, settings.joinMessage) }
+    } else {
+      if (!settings.greetingNotice.equals("")) { sendNotice(joiner, settings.greetingNotice) }
+    }
+  }
+
+  override def onVersion(nick: String, login: String, hostname: String, target: String): Unit = {
+    println("Version request by " + nick)
+    info.foreach(sendNotice(nick, _))
+  }
+
+  override def onPing(nick: String, login: String, hostname: String, target: String, pingValue: String): Unit = {
+    println("Pinged by " + nick)
+    sendNotice(nick, "pong")
+  }
+
+  override def onFinger(nick: String, login: String, hostname: String, target: String): Unit = {
+    println("Fingered by " + nick)
+    sendNotice(nick, ":o")
+  }
+
+  override def onServerPing(response: String): Unit = print(".")
+
+  override def onTime(nick: String, login: String, hostname: String, target: String): Unit = {
+    println("Time request by " + nick)
+    sendNotice(nick, "Time is an illusion.")
+  }
+
+  override def onDisconnect(): Unit = {
+    println("Disconnected.")
+    System.exit(0)
   }
 
   object Int {
