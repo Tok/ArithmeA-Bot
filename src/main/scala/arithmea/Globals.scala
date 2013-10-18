@@ -5,7 +5,7 @@ import arithmea.gematria.Term
 
 object Globals {
   val wordlistName = "words.txt"
-  val ircPropertiesName = "irc.properties"  
+  val ircPropertiesName = "irc.properties"
 
   private def readTerms(): Set[Term] = {
     println("Parsing wordlist...")
