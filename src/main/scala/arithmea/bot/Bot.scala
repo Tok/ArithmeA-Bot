@@ -23,7 +23,7 @@ class Bot extends PircBot {
   val TRIPPLE_DOT = "..."
   val resultCount = 30
 
-  case class IrcSettings(val network: String, val port: Int, val channel: String, val nick: String)
+  case class IrcSettings(val network: String, val port: Int, val channel: String, val nick: String, val joinMessage: String)
 
   def init: IrcSettings = {
     try {
@@ -36,17 +36,18 @@ class Bot extends PircBot {
       val login = prop.getProperty("login")
       val version = prop.getProperty("version")
       val delayMs = prop.getProperty("delayMs").toLong
+      val joinMessage = prop.getProperty("joinMessage")
       super.setEncoding("UTF-8")
       super.setLogin(login)
       super.setVersion(version)
       super.setMessageDelay(delayMs)
       super.setAutoNickChange(false)
-      IrcSettings(network, port, channel, nick)
+      IrcSettings(network, port, channel, nick, joinMessage)
     } catch {
       case e: Exception =>
         println("Fail reading IRC properties: " + e.getMessage)
         println("Using defaults.")
-        IrcSettings("efnet.xs4all.nl", 6669, "#Thelema", "ArithmeA")
+        IrcSettings("efnet.xs4all.nl", 6669, "#Thelema", "ArithmeA", "")
     }
   }
   val settings = init
@@ -78,6 +79,12 @@ class Bot extends PircBot {
     }
   }
 
+  override def onJoin(channel: String, sender: String, login: String, hostname: String): Unit = {
+    if (sender.equals(getNick) && !settings.joinMessage.equals("")) {
+      sendMessage(channel, settings.joinMessage)      
+    }
+  }
+  
   private def executeCommand(channel: String, command: String, rest: Array[String]): Unit = {
     try {
       Command.withName(command) match {
