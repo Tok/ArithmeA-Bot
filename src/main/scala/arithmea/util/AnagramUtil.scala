@@ -3,7 +3,8 @@ package arithmea.util
 import arithmea.Globals
 
 object AnagramUtil {
-  val maxWords = 3
+  val maxWords: Int = 3
+  val maxSize: Int = 12
   type KeyType = List[(Char, Int)]
 
   def generateAnagrams(word: String): List[String] = {

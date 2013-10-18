@@ -21,6 +21,7 @@ import arithmea.util.GematriaUtil
 
 class Bot extends PircBot {
   val SPACE = " "
+  val DASH = "-"
   val TRIPPLE_DOT = "..."
   val maxResults = 30
   val maxAnagrams = 20
@@ -80,8 +81,8 @@ class Bot extends PircBot {
   private def executeCommand(source: String, command: String, rest: Array[String]): Unit = {
     try {
       Command.withName(command) match {
-        case Command.ADD => evaluate(source, rest.head, true)
-        case Command.ANA => anagram(source, rest.head)
+        case Command.ADD => evaluate(source, rest.mkString(DASH), true)
+        case Command.ANA => anagram(source, rest.mkString)
         case Command.SHOW =>
           Method.valueOf(rest.head) match {
             case Some(m) =>
@@ -101,17 +102,21 @@ class Bot extends PircBot {
           else { sendMessage(source, "This command only works in the channel.") }
       }
     } catch {
-      case nse: NoSuchElementException => evaluate(source, command, false)
+      case nse: NoSuchElementException => evaluate(source, command.mkString(DASH), false)
     }
   }
 
   private def anagram(source: String, word: String): Unit = {
-    val anagrams = AnagramUtil.generateAnagrams(word)
-    if (!anagrams.isEmpty) {
-      val message = makeResultMessage(anagrams, maxAnagrams, " - ")
-      sendMessage(source, message)
+    if (word.size > AnagramUtil.maxSize) {
+      sendMessage(source, "Maximum size for anagrams is " + AnagramUtil.maxSize + " letters.")      
     } else {
-      sendMessage(source, "No anagrams found for: " + word)
+      val anagrams = AnagramUtil.generateAnagrams(word)
+      if (!anagrams.isEmpty) {
+        val message = makeResultMessage(anagrams, maxAnagrams, " - ")
+        sendMessage(source, message)
+      } else {
+        sendMessage(source, "No anagrams found for: " + word)
+      }      
     }
   }
 
