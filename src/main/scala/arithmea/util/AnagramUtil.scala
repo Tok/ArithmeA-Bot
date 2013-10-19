@@ -3,15 +3,17 @@ package arithmea.util
 import arithmea.Globals
 
 object AnagramUtil {
-  val maxWords: Int = 3
+  val maxWords: Int = 4
   val maxSize: Int = 12
-  type KeyType = List[(Char, Int)]
+
+  type Key = List[(Char, Int)]
+
+  def getKey(s: String): Key = s.toUpperCase.toList.groupBy(x => x).mapValues(_.size).toList.sorted
 
   def generateAnagrams(word: String): List[String] = {
-    def getKey(s: String): KeyType = s.toUpperCase.toList.groupBy(x => x).mapValues(_.size).toList.sorted
     def generateAnagrams(): List[List[String]] = {
-      def combinations(key: KeyType): List[KeyType] = {
-        def stretchKey(k: KeyType): KeyType = {
+      def combinations(key: Key): List[Key] = {
+        def stretchKey(k: Key): Key = {
           if (!k.isEmpty) {
             val (hit, other) = k.partition(_._2 > 1)
             if (hit.isEmpty) { other } else {
@@ -19,8 +21,8 @@ object AnagramUtil {
             }
           } else { List.empty }
         }
-        def compress(keyList: List[KeyType]): List[KeyType] = {
-          def compressKey(key: KeyType): KeyType = {
+        def compress(keyList: List[Key]): List[Key] = {
+          def compressKey(key: Key): Key = {
             if (!key.isEmpty) {
               List(((key.head._1, key.count(_._1 == key.head._1)))) :::
                 compressKey(key.filterNot(_._1 == key.head._1)).sorted
@@ -40,8 +42,7 @@ object AnagramUtil {
       val wordList = List(word.replaceAll(" +", ""))
       if (!wordList.isEmpty) {
         val key = getKey(wordList.mkString)
-        lazy val wordKeys = Globals.allWords.groupBy(word => getKey(word))
-        val words = combinations(key).flatMap(wordKeys.get(_).getOrElse(List.empty)).toList
+        val words = combinations(key).flatMap(Globals.anagramMap.get(_).getOrElse(List.empty)).toList
         val anagrams = (1 to maxWords).flatMap(comb(words, _))
         anagrams.filter(f => getKey(f.mkString) == key).flatMap(_.permutations).toList
       } else { List.empty }
