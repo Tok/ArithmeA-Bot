@@ -47,7 +47,9 @@ class Bot extends PircBot {
       super.setLogin(prop.getProperty("login"))
       super.setVersion(prop.getProperty("version"))
       super.setMessageDelay(prop.getProperty("delayMs").toLong)
+      super.setVerbose(prop.getProperty("verbose").toBoolean)
       super.setAutoNickChange(false)
+      super.startIdentServer
       IrcSettings(network, port, channel, nick, joinMessage, greetingNotice)
     } catch {
       case e: Exception =>
@@ -68,17 +70,21 @@ class Bot extends PircBot {
       super.setName(settings.nick)
       println("Connecting to " + settings.network + " on port " + settings.port + TRIPPLE_DOT)
       connect(settings.network, settings.port)
-      println("Joining " + settings.channel + TRIPPLE_DOT)
-      joinChannel(settings.channel)
-      println("Ready.")
     } catch {
       case nie: NickAlreadyInUseException => println("Fail: Nick is in use.")
       case ioe: IOException => println("Fail: IOException: " + ioe)
       case ie: IrcException => println("Fail: IrcException: " + ie)
+      case e: Exception => println("Fail: Exception: " + e)
     }
   }
 
-  private def executeCommand(source: String, command: String, rest: Array[String]): Unit = {
+  override def onConnect(): Unit = {
+    println("Joining " + settings.channel + TRIPPLE_DOT)
+    joinChannel(settings.channel)
+    println("Ready.")
+  }
+
+  private def executeCommand(source: String, command: String, rest: List[String]): Unit = {
     try {
       Command.withName(command) match {
         case Command.ADD => evaluate(source, rest.mkString(DASH), true)
@@ -98,17 +104,19 @@ class Bot extends PircBot {
         case Command.TERMS => showTerms(source)
         case Command.HELP => showHelp(source)
         case Command.GTFO | Command.QUIT =>
-          if (getChannels.contains(source)) { disconnect }
+          if (getChannels.toList.contains(source)) { disconnect }
           else { sendMessage(source, "This command only works in the channel.") }
       }
     } catch {
-      case nse: NoSuchElementException => evaluate(source, command.mkString(DASH), false)
+      case nse: NoSuchElementException =>
+        val cmd = if (rest.isEmpty) { command } else { command + DASH + rest.mkString(DASH) }
+        evaluate(source, cmd, false)
     }
   }
 
   private def anagram(source: String, word: String): Unit = {
     if (word.size > AnagramUtil.maxSize) {
-      sendMessage(source, "Maximum size for anagrams is " + AnagramUtil.maxSize + " letters.")      
+      sendMessage(source, "Maximum size for anagrams is " + AnagramUtil.maxSize + " letters.")
     } else {
       val anagrams = AnagramUtil.generateAnagrams(word)
       if (!anagrams.isEmpty) {
@@ -116,7 +124,7 @@ class Bot extends PircBot {
         sendMessage(source, message)
       } else {
         sendMessage(source, "No anagrams found for: " + word)
-      }      
+      }
     }
   }
 
@@ -247,14 +255,14 @@ class Bot extends PircBot {
     sendMessage(source, "Show Information about this bot: ARITHMEA INFO")
     sendMessage(source, "Comment transliteration: ARITHMEA COMMENT")
     sendMessage(source, "Count terms: ARITHMEA TERMS")
-    sendMessage(source, "Generate anagrams: ARITHMEA ANA [word]")
+    sendMessage(source, "Generate anagrams (takes time): ARITHMEA ANA [word]")
     sendMessage(source, "Disconnect Bot: ARITHMEA QUIT")
   }
 
   private def isForBot(firstWord: String): Boolean = {
     firstWord.startsWith("ARITHMEA") ||
-    firstWord.startsWith(getLogin.toUpperCase(Locale.getDefault)) ||
-    firstWord.startsWith(getNick.toUpperCase(Locale.getDefault))
+      firstWord.startsWith(getLogin.toUpperCase(Locale.getDefault)) ||
+      firstWord.startsWith(getNick.toUpperCase(Locale.getDefault))
   }
 
   private def makeResultMessage(result: List[String], limit: Int, separator: String): String = {
@@ -266,14 +274,14 @@ class Bot extends PircBot {
   }
 
   override def onMessage(channel: String, sender: String, login: String, host: String, msg: String): Unit = {
-    val message = msg.split(SPACE)
+    val message = msg.split(SPACE).toList
     if (isForBot(message.head.toUpperCase(Locale.getDefault))) {
       executeCommand(channel, message.tail.head.toUpperCase, message.tail.tail)
     }
   }
 
   override def onPrivateMessage(sender: String, login: String, host: String, msg: String): Unit = {
-    val message = msg.split(SPACE)
+    val message = msg.split(SPACE).toList
     executeCommand(sender, message.head.toUpperCase, message.tail)
   }
 
@@ -286,25 +294,30 @@ class Bot extends PircBot {
   }
 
   override def onVersion(nick: String, login: String, hostname: String, target: String): Unit = {
-    println("Version request by " + nick)
+    super.onVersion(nick, login, hostname, target)
     info.foreach(sendNotice(nick, _))
+    println("Version request by " + nick)
   }
 
   override def onPing(nick: String, login: String, hostname: String, target: String, pingValue: String): Unit = {
+    super.onPing(nick, login, hostname, target, pingValue)
     println("Pinged by " + nick)
-    sendNotice(nick, "pong")
   }
 
   override def onFinger(nick: String, login: String, hostname: String, target: String): Unit = {
-    println("Fingered by " + nick)
     sendNotice(nick, ":o")
+    println("Fingered by " + nick)
   }
 
-  override def onServerPing(response: String): Unit = print(".")
+  override def onServerPing(response: String): Unit = {
+    super.onServerPing(response)
+    print(".")
+  }
 
   override def onTime(nick: String, login: String, hostname: String, target: String): Unit = {
-    println("Time request by " + nick)
+    super.onTime(nick, login, hostname, target)
     sendNotice(nick, "Time is an illusion.")
+    println("Time request by " + nick)
   }
 
   override def onDisconnect(): Unit = {
