@@ -25,48 +25,52 @@ object TransliterationUtil {
 
   private def getHebrewChar(current: Char, next: Char, afterNext: Char, isFirst: Boolean): (Char, Int) = {
     def ret(hl: HebrewLetter): (Char, Int) = (hl.chr, 0)
+    def finalIfNotFirst(hl: HebrewLetter): HebrewLetter = {
+      if (isFirst) { hl } else { HebrewLetter.getFinalFor(hl) }
+    }
+    def finalOrFirst(hl: HebrewLetter): (Char, Int) = {
+      next match {
+        case ' ' | '-' | '\u0000' => ret(finalIfNotFirst(hl))
+        case _ => ret(hl)
+      }
+    }
     current match {
       case 'A' => ret(HebrewLetter.ALEPH)
       case 'B' => ret(HebrewLetter.BETH)
       case 'C' => next match {
         case 'H' => (HebrewLetter.CHETH.chr, 1)
-        case 'C' | 'K' => (marker, 1)
-        case '-' | ' ' | '\u0000' => ret(HebrewLetter.KAPH_FINAL)
+        case 'C' | 'K' =>
+          afterNext match {
+            case ' ' | '-' | '\u0000' => (finalIfNotFirst(HebrewLetter.KAPH).chr, 1)
+            case _ => (HebrewLetter.KAPH.chr, 1)
+          }
+        case '-' | ' ' | '\u0000' => ret(finalIfNotFirst(HebrewLetter.KAPH))
         case _ => ret(HebrewLetter.KAPH)
       }
       case 'D' => ret(HebrewLetter.DALETH)
       case 'E' => next match {
         case 'E' => (HebrewLetter.HEH.chr, 1)
-        case _ => (marker, 0)
+        case _ => if (isFirst) { ret(HebrewLetter.HEH) } else { (marker, 0) }
       }
       case 'F' => ret(HebrewLetter.PEH)
       case 'G' => ret(HebrewLetter.GIMEL)
       case 'H' => ret(HebrewLetter.HEH)
       case 'I' => ret(HebrewLetter.YUD)
       case 'J' => ret(HebrewLetter.GIMEL)
-      case 'K' => next match {
-        case ' ' | '-' | '\u0000' => ret(HebrewLetter.KAPH_FINAL)
-        case _ => ret(HebrewLetter.KAPH)
-      }
+      case 'K' => finalOrFirst(HebrewLetter.KAPH)
       case 'L' => ret(HebrewLetter.LAMED)
-      case 'M' => next match {
-        case ' ' | '-' | '\u0000' => ret(HebrewLetter.MEM_FINAL)
-        case _ => ret(HebrewLetter.MEM)
-      }
-      case 'N' => next match {
-        case ' ' | '-' | '\u0000' => ret(HebrewLetter.NUN_FINAL)
-        case _ => ret(HebrewLetter.NUN)
-      }
+      case 'M' => finalOrFirst(HebrewLetter.MEM)
+      case 'N' => finalOrFirst(HebrewLetter.NUN)
       case 'O' => next match {
         case 'O' | 'U' => (HebrewLetter.AYIN.chr, 1)
         case _ => if (isFirst) { ret(HebrewLetter.AYIN) } else { ret(HebrewLetter.VAV) }
       }
       case 'P' => next match {
         case 'H' => afterNext match {
-          case ' ' | '-' | '\u0000' => (HebrewLetter.PEH_FINAL.chr, 1)
+          case ' ' | '-' | '\u0000' => (finalIfNotFirst(HebrewLetter.PEH).chr, 1)
           case _ => (HebrewLetter.PEH.chr, 1)
         }
-        case ' ' | '-' | '\u0000' => ret(HebrewLetter.PEH_FINAL)
+        case ' ' | '-' | '\u0000' => ret(finalIfNotFirst(HebrewLetter.PEH))
         case _ => ret(HebrewLetter.PEH)
       }
       case 'Q' => next match {
@@ -85,7 +89,7 @@ object TransliterationUtil {
       }
       case 'T' => next match {
         case 'Z' | 'X' => afterNext match {
-          case ' ' | '-' | '\u0000' => (HebrewLetter.TZADDI_FINAL.chr, 1)
+          case ' ' | '-' | '\u0000' => (finalIfNotFirst(HebrewLetter.TZADDI).chr, 1)
           case _ => (HebrewLetter.TZADDI.chr, 1)
         }
         case 'H' => (HebrewLetter.TAV.chr, 1)
@@ -93,10 +97,7 @@ object TransliterationUtil {
         case _ => ret(HebrewLetter.TETH)
       }
       case 'U' | 'V' | 'W' => ret(HebrewLetter.VAV)
-      case 'X' => next match {
-        case ' ' | '-' | '\u0000' => ret(HebrewLetter.TZADDI_FINAL)
-        case _ => ret(HebrewLetter.TZADDI)
-      }
+      case 'X' => finalOrFirst(HebrewLetter.TZADDI)
       case 'Y' => ret(HebrewLetter.YUD)
       case 'Z' => ret(HebrewLetter.ZAIN)
       case _ => (current, 0)

@@ -44,4 +44,14 @@ object HebrewLetter {
     LAMED, MEM, NUN, SAMEKH, AYIN, PEH, TZADDI, QOPH, RESH, SHIN, TAV,
     KAPH_FINAL, MEM_FINAL, NUN_FINAL, PEH_FINAL, TZADDI_FINAL)
   def valueOf(c: Char): Option[HebrewLetter] = values.find(_.chr == c)
+  def getFinalFor(hl: HebrewLetter): HebrewLetter = {
+    hl match {
+      case KAPH => KAPH_FINAL
+      case MEM => MEM_FINAL
+      case NUN => NUN_FINAL
+      case PEH => PEH_FINAL
+      case TZADDI => TZADDI_FINAL
+      case _ => throw new IllegalArgumentException("Letter has no final form: " + hl)
+    }
+  }
 }
