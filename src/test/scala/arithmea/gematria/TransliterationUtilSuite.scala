@@ -56,7 +56,6 @@ class TransliterationUtilSuite extends AbstractTester {
   }
 
   test("Peh") {
-    assert(TransliterationUtil.getHebrew("P") === HebrewLetter.PEH.chr.toString)
     assert(TransliterationUtil.getHebrew("PH") === HebrewLetter.PEH.chr.toString)
   }
 
@@ -83,27 +82,23 @@ class TransliterationUtilSuite extends AbstractTester {
   }
 
   test("Final Kaph") {
-    assert(TransliterationUtil.getHebrew("K") === HebrewLetter.KAPH.chr.toString)
     assert(TransliterationUtil.getHebrew("KA").head === HebrewLetter.KAPH.chr)
     assert(TransliterationUtil.getHebrew("AK").last === HebrewLetter.KAPH_FINAL.chr)
   }
 
   test("Final Mem") {
-    assert(TransliterationUtil.getHebrew("M") === HebrewLetter.MEM.chr.toString)
     assert(TransliterationUtil.getHebrew("MA").head === HebrewLetter.MEM.chr)
     assert(TransliterationUtil.getHebrew("AM").last === HebrewLetter.MEM_FINAL.chr)
     assert(TransliterationUtil.getHebrew("AMA").tail.head === HebrewLetter.MEM.chr)
   }
 
   test("Final Nun") {
-    assert(TransliterationUtil.getHebrew("N") === HebrewLetter.NUN.chr.toString)
     assert(TransliterationUtil.getHebrew("NA").head === HebrewLetter.NUN.chr)
     assert(TransliterationUtil.getHebrew("AN").last === HebrewLetter.NUN_FINAL.chr)
     assert(TransliterationUtil.getHebrew("ANA").tail.head === HebrewLetter.NUN.chr)
   }
 
   test("Final Peh") {
-    assert(TransliterationUtil.getHebrew("P") === HebrewLetter.PEH.chr.toString)
     assert(TransliterationUtil.getHebrew("PH") === HebrewLetter.PEH.chr.toString)
     assert(TransliterationUtil.getHebrew("PA").head === HebrewLetter.PEH.chr)
     assert(TransliterationUtil.getHebrew("PHA").head === HebrewLetter.PEH.chr)
@@ -115,7 +110,6 @@ class TransliterationUtilSuite extends AbstractTester {
 
   test("Final Tzaddi") {
     assert(TransliterationUtil.getHebrew("X") === HebrewLetter.TZADDI.chr.toString)
-    assert(TransliterationUtil.getHebrew("TZ") === HebrewLetter.TZADDI.chr.toString)
     assert(TransliterationUtil.getHebrew("XA").head === HebrewLetter.TZADDI.chr)
     assert(TransliterationUtil.getHebrew("TZA").head === HebrewLetter.TZADDI.chr)
     assert(TransliterationUtil.getHebrew("AX").last === HebrewLetter.TZADDI_FINAL.chr)
