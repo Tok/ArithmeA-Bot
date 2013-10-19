@@ -16,6 +16,7 @@ import arithmea.util.AnagramUtil
 import arithmea.util.ColorUtil
 import arithmea.util.GematriaUtil
 import arithmea.gematria.Explaination
+import arithmea.util.TransliterationUtil
 
 class Bot extends PircBot {
   val SPACE = " "
@@ -139,7 +140,7 @@ class Bot extends PircBot {
     }
     val prepared = Method.values.map(prepare(_)).toList.mkString(SPACE).trim
     val colored = ColorUtil.colorString(prepared)
-    val hebrew = GematriaUtil.getHebrew(word)
+    val hebrew = TransliterationUtil.getHebrew(word)
     sendMessage(source, colored + " -- " + hebrew)
     if (addWord) {
       val upper = word.toUpperCase(Locale.getDefault)
