@@ -23,10 +23,14 @@ object Reason {
   case object GREAT_WORK extends Reason(IrcColor.PURPLE)
   case object WORD_OF_FLIGHT extends Reason(IrcColor.PURPLE)
   case object BEAST extends Reason(IrcColor.PURPLE)
+  case object NU extends Reason(IrcColor.PURPLE)
+  case object HAD extends Reason(IrcColor.PURPLE)
+  case object KEY extends Reason(IrcColor.PURPLE)
 
   case object SEVENTY_TWO extends Reason(IrcColor.PURPLE)
   case object NINETY_THREE extends Reason(IrcColor.PURPLE)
   case object ONEHUNDRED_AND_FIFTY_SIX extends Reason(IrcColor.PURPLE)
   case object TWOHUNDRED_AND_SEVEN extends Reason(IrcColor.PURPLE)
   case object THREEHUNDRED_AND_FOURTY_ONE extends Reason(IrcColor.PURPLE)
+  case object ONE_SEVEN_SEVEN_SIX extends Reason(IrcColor.PURPLE)
 }

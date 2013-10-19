@@ -12,6 +12,8 @@ object Highlight {
       34 -> Reason.FIBONACCI_NUMBER,
       44 -> Reason.MASTER_NUMBER,
       55 -> Reason.MASTER_NUMBER,
+      56 -> Reason.NU,
+      61 -> Reason.KEY,
       64 -> Reason.CUBE_NUMBER, //4*4*4
       66 -> Reason.MASTER_NUMBER,
       70 -> Reason.WEIRD_NUMBER,
@@ -47,6 +49,8 @@ object Highlight {
       420 -> Reason.FOUR_TWENTY,
       444 -> Reason.SUPER_MASTER_NUMBER,
       500 -> Reason.VERY_EVEN,
+      504 -> Reason.HAD,
+      506 -> Reason.NU,
       512 -> Reason.CUBE_NUMBER, //8*8*8
       529 -> Reason.SPECIAL_SQUARE, //23*23
       555 -> Reason.SUPER_MASTER_NUMBER,
@@ -72,6 +76,7 @@ object Highlight {
       1337 -> Reason.LEET,
       1597 -> Reason.FIBONACCI_NUMBER,
       1728 -> Reason.CUBE_NUMBER, //12*12*12
+      1776 -> Reason.ONE_SEVEN_SEVEN_SIX, //888*2
       2000 -> Reason.VERY_EVEN,
       2197 -> Reason.CUBE_NUMBER, //13*13*13
       2222 -> Reason.HYPER_MASTER_NUMBER,
