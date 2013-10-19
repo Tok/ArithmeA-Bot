@@ -8,10 +8,9 @@ object Globals {
   val wordlistName = "words.txt"
   val ircPropertiesName = "irc.properties"
   val encoding = "ISO-8859-1"
+
   val allWords = readWords
   val anagramMap = generateAnagramMap
-
-  type AnagramMap = Map[AnagramUtil.Key, List[String]]
 
   private def readWords(): List[String] = {
     println("Parsing wordlist...")
@@ -20,6 +19,7 @@ object Globals {
     lines.map(_.toUpperCase(Locale.getDefault)).sorted
   }
 
+  type AnagramMap = Map[AnagramUtil.Key, List[String]]
   private def generateAnagramMap(): AnagramMap = {
     println("Calculating anagram keys...")
     allWords.groupBy(AnagramUtil.getKey(_))

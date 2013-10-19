@@ -19,7 +19,7 @@ object WordlistUtil {
   //run JAVA -jar ArithmeA-Bot-1.0-SNAPSHOT-jar-with-dependencies.jar [inputfilename]
   def createWordlist(inputName: String): Unit = {
     println("Reading file: " + inputName)
-    val lines = scala.io.Source.fromFile(inputName, "ISO-8859-1").getLines.toList
+    val lines = scala.io.Source.fromFile(inputName, Globals.encoding).getLines.toList
     println("Number of lines: " + lines.size)
     val words = lines.map(_.toUpperCase(Locale.getDefault)).distinct
     println("Number of distinct words: " + words.size)
