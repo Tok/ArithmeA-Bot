@@ -17,11 +17,16 @@ import arithmea.util.ColorUtil
 import arithmea.util.GematriaUtil
 import arithmea.gematria.Explaination
 import arithmea.util.TransliterationUtil
+import arithmea.tarot.Spread
+import arithmea.tarot.Card
+import scala.annotation.tailrec
 
 class Bot extends PircBot {
   val SPACE = " "
   val DASH = "-"
   val TRIPPLE_DOT = "..."
+  val OPEN = " ("
+  val CLOSE = ") "
   val maxResults = 30
   val maxAnagrams = 20
 
@@ -61,7 +66,7 @@ class Bot extends PircBot {
 
   object Command extends Enumeration {
     type Command = Value
-    val ADD, SHOW, TERMS, HELP, INFO, EXPLAIN, COMMENT, ANA, QUIT, GTFO = Value
+    val ADD, SHOW, TERMS, TAROT, HELP, INFO, EXPLAIN, COMMENT, ANA, QUIT, GTFO = Value
   }
 
   def connectAndJoin(): Unit = {
@@ -101,6 +106,7 @@ class Bot extends PircBot {
         case Command.EXPLAIN => explain(source, rest.head)
         case Command.COMMENT => comment(source)
         case Command.TERMS => showTerms(source)
+        case Command.TAROT => drawTarot(source, rest.head)
         case Command.HELP => showHelp(source)
         case Command.GTFO | Command.QUIT =>
           if (getChannels.toList.contains(source)) { disconnect }
@@ -132,8 +138,8 @@ class Bot extends PircBot {
     def prepare(m: Method): String = {
       val v = numbers.get(m).get
       val prep = m match {
-        case Method.Chaldean | Method.Pythagorean => " (" + GematriaUtil.reduce(v) + ") "
-        case Method.IA => " (" + (v * 6) + ") "
+        case Method.Chaldean | Method.Pythagorean => OPEN + GematriaUtil.reduce(v) + CLOSE
+        case Method.IA => OPEN + (v * 6) + CLOSE
         case _ => SPACE
       }
       m + ": " + v + prep
@@ -176,6 +182,29 @@ class Bot extends PircBot {
     }
   }
 
+  private def drawTarot(source: String, spreadName: String): Unit = {
+    def makeLine(s: String, c: Card): String = s + ": " + c.toString + OPEN + c.meaning + CLOSE
+    def makeLines(s: Vector[String], c: Vector[Card]): List[String] = {
+      def impl(i: Int): List[String] = {
+        if (i >= 0) { List(makeLine(s(i), c(i))) ::: impl(i - 1) } else { Nil }
+      }
+      impl(s.size - 1).reverse
+    }
+    def draw(spread: Spread): List[String] = {
+      spread match {
+        case Spread.Trump =>
+          val trump = Random.shuffle(Card.values.filter(_.isTrump)).head
+          List(makeLine(Spread.Trump.layout.head, trump))
+        case s: Spread => makeLines(s.layout, Random.shuffle(Card.values).toVector)
+      }
+    }
+    val spread = Spread.valueOf(spreadName)
+    spread match {
+      case Some(s) => draw(s).foreach(msg => sendMessage(source, msg))
+      case None => sendMessage(source, "Spread unknown: " + spreadName)
+    }
+  }
+
   private def explain(source: String, method: String): Unit = {
     val text = Method.valueOf(method) match {
       case Some(m) => Explaination.getFor(m)
@@ -204,6 +233,8 @@ class Bot extends PircBot {
     sendMessage(source, "Comment transliteration: ARITHMEA COMMENT")
     sendMessage(source, "Count terms: ARITHMEA TERMS")
     sendMessage(source, "Generate anagrams (takes time): ARITHMEA ANA [word]")
+    sendMessage(source, "Draw Tarot Cards: ARITHMEA TAROT [spread]")
+    sendMessage(source, "  - Spreads are: " + Spread.values.map(_.toString.toUpperCase(Locale.getDefault)).mkString(SPACE))
     sendMessage(source, "Disconnect Bot: ARITHMEA QUIT")
   }
 
