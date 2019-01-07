@@ -27,7 +27,7 @@ object LatinLetter {
   case object F extends LatinLetter(8, 6, 6, 18, 12, 0, 90)
   case object G extends LatinLetter(3, 7, 7, 11, 11, 7, 20)
   case object H extends LatinLetter(5, 8, 8, 4, 3, 8, 4)
-  case object I extends LatinLetter(1, 9, 9, 23, 26, 3, 500)
+  case object I extends LatinLetter(1, 9, 9, 23, 0, 3, 500)
   case object J extends LatinLetter(1, 1, 10, 16, 7, 0, 70)
   case object K extends LatinLetter(2, 2, 11, 9, 17, 0, 9)
   case object L extends LatinLetter(3, 3, 12, 2, 1, 9, 2)
